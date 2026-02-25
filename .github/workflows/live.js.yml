@@ -1,0 +1,64 @@
+# This orkflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Tajiri Backend Live
+
+on:
+  push:
+    branches: [ "main" ]
+    
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [ 16.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - name: npm install and test
+      run: npm install
+  deploy:
+    needs: [test]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: SSH and deploy node app
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          PATH=$PATH:/${{secrets.SSH_USER_NAME}}/root/.nvm/versions/node/v16.18.0/bin
+          cd /var/www/live/IconTech
+          
+          file=.env
+          grep -q "^ACCESS_TOKEN_SECRET=" ${file} && sed -i -e "s/^ACCESS_TOKEN_SECRET=.*/ACCESS_TOKEN_SECRET= ${{secrets.LIVE_ACCESS_TOKEN_SECRET}}/g" ${file} || echo "ACCESS_TOKEN_SECRET= ${{secrets.LIVE_ACCESS_TOKEN_SECRET}}" >> ${file}
+          grep -q "^ACCESS_TOKEN_SECRET_EXPIRES_IN=" ${file} && sed -i -e "s/^ACCESS_TOKEN_SECRET_EXPIRES_IN=.*/ACCESS_TOKEN_SECRET_EXPIRES_IN= ${{secrets.LIVE_ACCESS_TOKEN_SECRET_EXPIRES_IN}}/g" ${file} || echo "ACCESS_TOKEN_SECRET_EXPIRES_IN= ${{secrets.LIVE_ACCESS_TOKEN_SECRET_EXPIRES_IN}}" >> ${file}
+          grep -q "^DB_DIALECT=" ${file} && sed -i -e "s/^DB_DIALECT=.*/DB_DIALECT= ${{secrets.LIVE_DB_DIALECT}}/g" ${file} || echo "DB_DIALECT= ${{secrets.LIVE_DB_DIALECT}}" >> ${file}
+          grep -q "^DB_HOST=" ${file} && sed -i -e "s/^DB_HOST=.*/DB_HOST= ${{secrets.LIVE_DB_HOST}}/g" ${file} || echo "DB_HOST= ${{secrets.LIVE_DB_HOST}}" >> ${file}
+          grep -q "^DB_NAME=" ${file} && sed -i -e "s/^DB_NAME=.*/DB_NAME= ${{secrets.LIVE_DB_NAME}}/g" ${file} || echo "DB_NAME= ${{secrets.LIVE_DB_NAME}}" >> ${file}
+          grep -q "^DB_PASSWORD=" ${file} && sed -i -e "s/^DB_PASSWORD=.*/DB_PASSWORD= ${{secrets.LIVE_DB_PASSWORD}}/g" ${file} || echo "DB_PASSWORD= ${{secrets.LIVE_DB_PASSWORD}}" >> ${file}
+          grep -q "^DB_USER=" ${file} && sed -i -e "s/^DB_USER=.*/DB_USER= ${{secrets.LIVE_DB_USER}}/g" ${file} || echo "DB_USER= ${{secrets.LIVE_DB_USER}}" >> ${file}
+          grep -q "^EMAIL_SENDER_PASSWORD=" ${file} && sed -i -e "s/^EMAIL_SENDER_PASSWORD=.*/EMAIL_SENDER_PASSWORD= ${{secrets.LIVE_EMAIL_SENDER_PASSWORD}}/g" ${file} || echo "EMAIL_SENDER_PASSWORD= ${{secrets.LIVE_EMAIL_SENDER_PASSWORD}}" >> ${file}
+          grep -q "^EMAIL_SENDER_USER=" ${file} && sed -i -e "s/^EMAIL_SENDER_USER=.*/EMAIL_SENDER_USER= ${{secrets.LIVE_EMAIL_SENDER_USER}}/g" ${file} || echo "EMAIL_SENDER_USER= ${{secrets.LIVE_EMAIL_SENDER_USER}}" >> ${file}
+          grep -q "^REFRESH_TOKEN_SECRET=" ${file} && sed -i -e "s/^REFRESH_TOKEN_SECRET=.*/REFRESH_TOKEN_SECRET= ${{secrets.LIVE_REFRESH_TOKEN_SECRET}}/g" ${file} || echo "REFRESH_TOKEN_SECRET= ${{secrets.LIVE_REFRESH_TOKEN_SECRET}}" >> ${file}
+          grep -q "^REFRESH_TOKEN_SECRET_EXPIRES_IN=" ${file} && sed -i -e "s/^REFRESH_TOKEN_SECRET_EXPIRES_IN=.*/REFRESH_TOKEN_SECRET_EXPIRES_IN= ${{secrets.LIVE_REFRESH_TOKEN_SECRET_EXPIRES_IN}}/g" ${file} || echo "REFRESH_TOKEN_SECRET_EXPIRES_IN= ${{secrets.LIVE_REFRESH_TOKEN_SECRET_EXPIRES_IN}}" >> ${file}
+          grep -q "^REFRESH_TOKEN_SECRET_REMEMBER_ME=" ${file} && sed -i -e "s/^REFRESH_TOKEN_SECRET_REMEMBER_ME=.*/REFRESH_TOKEN_SECRET_REMEMBER_ME= ${{secrets.LIVE_REFRESH_TOKEN_SECRET_REMEMBER_ME}}/g" ${file} || echo "REFRESH_TOKEN_SECRET_REMEMBER_ME= ${{secrets.LIVE_REFRESH_TOKEN_SECRET_REMEMBER_ME}}" >> ${file}
+         
+          git pull origin main
+          npm install --production
+          pm2 restart backend-live
