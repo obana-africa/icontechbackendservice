@@ -26,7 +26,7 @@ module.exports = {
     database: process.env.DB_NAME,
     dialect: process.env.DB_DIALECT ?? 'postgres',
     migrationStorageTableName: "migrations",
-    port: 3306
+    port: process.env.DB_PORT
   },
   use_env_variable: process.env.ENV
 }
