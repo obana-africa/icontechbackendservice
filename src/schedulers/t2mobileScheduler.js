@@ -23,13 +23,13 @@ class T2MobileScheduler {
 
         console.log('Starting T2Mobile scheduler...');
 
-        // Schedule webhook retry job
+        
         this.scheduleWebhookRetry();
 
-        // Schedule expiry reminder job
+        
         this.scheduleExpiryReminder();
 
-        // Schedule renewal check job
+        
         this.scheduleRenewalCheck();
 
         console.log(`T2Mobile scheduler initialized with ${this.tasks.length} tasks`);
@@ -104,7 +104,7 @@ class T2MobileScheduler {
      */
     static async checkRenewals() {
         try {
-            // TODO: Implement renewal checking logic
+            // TODO:  renewal checking logic
             // Query fulfillments that are about to expire and need renewal
             console.log('[Scheduler] Renewal check completed');
         } catch (error) {

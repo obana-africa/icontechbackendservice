@@ -154,7 +154,7 @@ class WebhookHelper {
                         [db.Sequelize.Op.lte]: new Date()
                     },
                     retries: {
-                        [db.Sequelize.Op.lt]: 5  // Max 5 retries
+                        [db.Sequelize.Op.lt]: 5  
                     }
                 }
             });

@@ -25,6 +25,7 @@ class T2MobileController {
         let products  = [];
         for (const item of response.items) {
             products.push({
+                parentId: item.cf_parent_id,
                 productId: item.item_id,
                 name: item.name,
                 description: item.description,

@@ -40,6 +40,7 @@ const makeRequest = async (req, res) => {
 
             const rawResponse = await sendRequest(requestDetails)            
             requestDetails.response = rawResponse.data
+            console.log("RAW RESPONSE", rawResponse.data)
             
         utils.setParameters({ response: JSON.parse(requestDetails.response) }, requestHelper)
         requestDetails = await handleEvent(requestDetails, endpoint, "after_execute")
