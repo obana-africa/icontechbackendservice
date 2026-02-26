@@ -22,8 +22,21 @@ class T2MobileController {
         req.body.return = 1;
         req.params =  {tenant: 'zoho', endpoint: 'get-products'}
         let response = await makeRequest(req, res)
-
-        return response.items;
+        let products  = [];
+        for (const item of response.items) {
+            products.push({
+                productId: item.item_id,
+                name: item.name,
+                description: item.description,
+                cost: item.rate,
+                currency: item.cf_currency,
+                tenure: item.cf_tenure,
+                imageUrl: item.cf_image_url,
+                fulfilmentId: `${item.item_id}_LICENSE`
+            })
+        }
+        console.log("PRODUCTS", products);
+        return products;
         /* [
             {
                 productId: 'ZOHO_CRM_STD',
