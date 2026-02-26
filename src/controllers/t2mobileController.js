@@ -35,7 +35,7 @@ class T2MobileController {
                 fulfilmentId: `${item.item_id}_LICENSE`
             })
         }
-        console.log("PRODUCTS", products);
+        
         return products;
         /* [
             {
