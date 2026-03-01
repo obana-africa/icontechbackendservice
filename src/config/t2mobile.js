@@ -15,7 +15,7 @@ module.exports = {
     // Zoho Integration
     zoho: {
         organization_id: process.env.ZOHO_ORGANIZATION_ID,
-        api_domain: process.env.ZOHO_API_DOMAIN || 'api.zoho.com',
+        api_domain: process.env.ZOHO_API_DOMAIN || 'www.zohoapis.com',
         token_endpoint: process.env.ZOHO_TOKEN_ENDPOINT || '/oauth/v2/token',
         refresh_token: process.env.INVENTORY_REFRESH_TOKEN,
         client_id: process.env.ZOHO_CLIENT_ID,

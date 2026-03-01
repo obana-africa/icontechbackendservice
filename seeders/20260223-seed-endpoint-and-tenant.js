@@ -20,7 +20,7 @@ module.exports = {
                  $1, 'enable', NOW(), NOW())
          RETURNING id`,
         {
-          replacements: [JSON.stringify({ organization_id: 890177831, fob_field_id: '4650667000021931197' })],
+          bind: [JSON.stringify({ organization_id: 914911306, fob_field_id: '4650667000021931197' })],
           type: Sequelize.QueryTypes.SELECT
         }
       );
@@ -30,9 +30,9 @@ module.exports = {
 
     // Check if endpoints already exist (idempotency)
     const existingEndpoints = await queryInterface.sequelize.query(
-      `SELECT slug FROM endpoints WHERE tenant_id = $1 AND slug IN ('get-products', 'get-orders', 'create-orders', 'update-orders')`,
+      `SELECT slug FROM endpoints WHERE tenant_id = $1 AND slug IN ('get-products', 'get-orders', 'create-orders', 'update-orders', 'customer')`,
       {
-        replacements: [tenantId],
+        bind: [tenantId],
         type: Sequelize.QueryTypes.SELECT
       }
     );
@@ -118,6 +118,26 @@ module.exports = {
         log: null,
         createdAt: new Date(),
         updatedAt: new Date()
+      },
+      {
+        tenant_id: tenantId,
+        name: 'Zoho Create Customer',
+        slug: 'customer',
+        before_execute: '{  "method":"formatCreateZohoContactPayload",  "shouldWait":1  }',
+        after_execute: null,
+        route: 'contacts',
+        verb: 'post',
+        type: 'rest',
+        parameters: '{    "organization_id":{"source":"tenantConfig.organization_id"}  }',
+        payload: null,
+        headers: '{ "Content-Type": "application/json",  "Authorization":"123" }',
+        require_authentication: null,
+        response: null,
+        status: null,
+        scope: null,
+        log: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     ];
 
@@ -128,12 +148,12 @@ module.exports = {
       console.log(`Found ${existingEndpoints.length} existing endpoint(s), inserting ${missingEndpoints.length} missing ones`);
       
       if (missingEndpoints.length > 0) {
-        await queryInterface.bulkInsert('endpoint', missingEndpoints);
+        await queryInterface.bulkInsert('endpoints', missingEndpoints);
       }
     } else {
       // All endpoints are new
       console.log(`No endpoints found for tenant_id=${tenantId}, inserting all ${endpointsToInsert.length} endpoints`);
-      await queryInterface.bulkInsert('endpoint', endpointsToInsert);
+      await queryInterface.bulkInsert('endpoints', endpointsToInsert);
     }
   },
 
@@ -146,8 +166,8 @@ module.exports = {
     
     if (tenant.length > 0) {
       const tenantId = tenant[0].id;
-      await queryInterface.bulkDelete('endpoint', { tenant_id: tenantId }, {});
+      await queryInterface.bulkDelete('endpoints', { tenant_id: tenantId }, {});
     }
-    await queryInterface.bulkDelete('tenant', { slug: 'zoho' }, {});
+    await queryInterface.bulkDelete('tenants', { slug: 'zoho' }, {});
   }
 };

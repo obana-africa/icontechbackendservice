@@ -11,7 +11,7 @@ module.exports = {
         base_url: 'www.zohoapis.com/inventory/v1',
         description: 'Zoho Inventory Base Url',
         registry: null,
-        config: JSON.stringify({ organization_id: 890177831, fob_field_id: '4650667000021931197' }),
+        config: JSON.stringify({ organization_id: 914911306, fob_field_id: '4650667000021931197' }),
         status: 'enable',
         createdAt: new Date(),
         updatedAt: new Date()

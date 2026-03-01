@@ -1,5 +1,6 @@
 const { Axios } = require('axios');
 const db = require('../models')
+const t2mobileConfig = require('../config/t2mobile')
 
 const sendRequest = async (requestDetails) => {
     const log = requestDetails.endpoint.log ? await logRequest(requestDetails) : null
@@ -18,7 +19,8 @@ const sendRequest = async (requestDetails) => {
             headers: {
                 "Content-Type": "application/json",
                 // "Accept": "application/json"
-            }
+            },
+            timeout: t2mobileConfig.timeouts.zohoApiCall
         })
         log ? log.response = JSON.stringify(httpResponse.data ?? {}) : null
         log ? log.save() : null

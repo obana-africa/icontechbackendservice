@@ -44,6 +44,7 @@ db.sequelize = sequelize
 
 db.tenants = require('./tenantModel.js')(sequelize, DataTypes)
 db.endpoints = require('./endpointModel.js')(sequelize, DataTypes)
+db.users = require('./userModel.js')(sequelize, DataTypes)
 db.requests = require('./requestModel.js')(sequelize, DataTypes)
 
 

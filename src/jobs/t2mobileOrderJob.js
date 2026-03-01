@@ -11,6 +11,8 @@ const db = require('../models');
 const WebhookHelper = require('../helpers/webhookHelper');
 const T2MobileHelper = require('../helpers/t2mobileHelper');
 const t2mobileConfig = require('../config/t2mobile');
+const {makeRequest} = require('../controllers/requestController');
+const { Axios } = require('axios');
 
 class T2MobileOrderJob {
     /**
@@ -59,7 +61,7 @@ class T2MobileOrderJob {
             
             order.zohoSalesOrderId = salesOrderId;
             order.activationReference = activationReference;
-            order.status = 'FULFILLING';
+            order.status = 'PROCESSING';
             await order.save();
 
             
@@ -72,7 +74,7 @@ class T2MobileOrderJob {
                 tenure
             });
 
-            // Step 5: Create fulfillment record
+            
             await db.t2mobile_fulfillments.create({
                 orderId,
                 activationReference,
@@ -82,7 +84,7 @@ class T2MobileOrderJob {
                 zohoResponse: fulfillmentData
             });
 
-            // Step 6: Update order status to FULFILLED
+            
             order.status = 'FULFILLED';
             await order.save();
 
@@ -141,10 +143,74 @@ class T2MobileOrderJob {
      */
     static async createZohoSalesOrder(orderData) {
         try {
-            // Get Zoho token
-            const token = await this.getZohoToken();
+            const token = await db.cache.getZohoInvetoryToken()
+            let customerId;
+            const AxiosInstance = new Axios({
+                baseURL: `https://${t2mobileConfig.zoho.api_domain}`,
+                headers: {
+                    "Content-Type": "application/json",
+                               'Authorization': token,
+                               
+                            },
+                })
+                        
+                        
+            // let isTaken = JSON.parse((await AxiosInstance.request({
+            //     url: `/inventory/v1/contacts?organization_id=${t2mobileConfig.zoho.organization_id}&email=${orderData.customerEmail}`,
+            //     method: 'get',
+            //     timeout: t2mobileConfig.timeouts.zohoApiCall
+            //     }
+            // )).data);
 
+            
+            
+            let user = await db.users.findOne({  
+                where: {
+                    email: orderData.customerEmail,
+                    
+                }
+            });
+
+            let isTaken = user ? true : false
+            console.log("Zoho contact search response:", isTaken)
+            if (isTaken) {
+                customerId = user.contact_id;
+            } else {                    
+            let newPayLoad = {
+            contact_name: orderData.customerName,
+            email: orderData.customerEmail,
+            phone: orderData.customerPhone,
+            // display_name: orderData.customerName
+        }
+
+            let resp = await AxiosInstance.request({
+                url: `/inventory/v1/contacts?organization_id=${t2mobileConfig.zoho.organization_id}`,
+                method: 'post',
+                data: JSON.stringify(newPayLoad),
+                timeout: t2mobileConfig.timeouts.zohoApiCall
+                }
+            );
+            
+            
+            let parsedResp = JSON.parse(resp.data)
+            console.log("Zoho contact search response:", parsedResp)
+
+            customerId = parsedResp.contact.contact_id
+            db.users.create({
+                name: orderData.customerName,
+                phone: orderData.customerPhone,
+                email: orderData.customerEmail,
+                contact_id: customerId
+            })
+            
+        }
+
+        
+        console.log("Customer ID:", customerId)
+            
             const payload = {
+                customer_id: customerId,
+                // salesorder_number: `SO_${orderData.orderId}`,
                 customer_name: orderData.customerName,
                 customer_email: orderData.customerEmail,
                 line_items: [{
@@ -152,24 +218,26 @@ class T2MobileOrderJob {
                     quantity: 1
                 }]
             };
+            console.log("Zoho Sales Order payload:", payload)
+            // req.body = payload;
+            // req.params =  {tenant: 'zoho', endpoint: 'salesorders'}
+            // let response = await makeRequest(req, res)
 
-            const response = await axios.post(
-                `https://${t2mobileConfig.zoho.api_domain}/inventory/api/v1/salesorders`,
-                payload,
-                {
-                    headers: {
-                        'Authorization': `Zoho-oauthtoken ${token}`,
-                        'X-com-zoho-invoice-organizationid': t2mobileConfig.zoho.organization_id
-                    },
-                    timeout: t2mobileConfig.timeouts.zohoApiCall
+            const response = await AxiosInstance.request({
+                url: `/inventory/v1/salesorders?organization_id=${t2mobileConfig.zoho.organization_id}`,
+                data: JSON.stringify(payload),
+                method: 'post',
+                timeout: t2mobileConfig.timeouts.zohoApiCall
                 }
             );
 
-            if (!response.data.code) {
+            let parsedResponse = JSON.parse(response.data)
+            console.log(parsedResponse)
+            if (!(parsedResponse.code == 0) || !parsedResponse.salesorder?.salesorder_id) {
                 throw new Error('No sales order ID returned from Zoho');
             }
 
-            return response.data;
+            return parsedResponse;
         } catch (error) {
             const { errorMessage, errorCode } = T2MobileHelper.parseZohoError(error);
             const err = new Error(`Zoho Sales Order creation failed: ${errorMessage}`);
@@ -203,29 +271,7 @@ class T2MobileOrderJob {
         }
     }
 
-    /**
-     * Get Zoho OAuth token
-     * @returns {Promise<string>}
-     */
-    static async getZohoToken() {
-        try {
-            // This should ideally cache the token and refresh when expired
-            const response = await axios.post(
-                `https://${t2mobileConfig.zoho.api_domain}${t2mobileConfig.zoho.token_endpoint}`,
-                {
-                    grant_type: 'refresh_token',
-                    client_id: t2mobileConfig.zoho.client_id,
-                    client_secret: t2mobileConfig.zoho.client_secret,
-                    refresh_token: t2mobileConfig.zoho.refresh_token
-                },
-                { timeout: t2mobileConfig.timeouts.zohoApiCall }
-            );
-
-            return response.data.access_token;
-        } catch (error) {
-            throw new Error('Failed to obtain Zoho token: ' + error.message);
-        }
-    }
+ 
 }
 
 module.exports = T2MobileOrderJob;
