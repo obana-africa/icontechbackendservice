@@ -19,12 +19,18 @@ class JobHelper {
             return this.queues[queueName];
         }
 
-        const redisConfig = {
+        let redisConfig;
+        if (process.env.NODE_ENV === 'production') {
+            redisConfig= process.env.REDIS_URL
+            
+        }else {
+                redisConfig = {
             host: process.env.REDIS_HOST || 'localhost',
             port: process.env.REDIS_PORT || 6379,
             password: process.env.REDIS_PASSWORD || undefined,
             db: process.env.REDIS_DB || 0
-        };
+        }
+    };
 
         const queue = new Queue(queueName, redisConfig);
 

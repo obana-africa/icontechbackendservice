@@ -38,28 +38,7 @@ class T2MobileController {
         }
         
         return products;
-        /* [
-            {
-                productId: 'ZOHO_CRM_STD',
-                name: 'Zoho CRM Standard',
-                description: 'Professional CRM for small business',
-                cost: 150000,
-                currency: 'NGN',
-                tenure: '12_MONTHS',
-                imageUrl: 'https://icontech.com/images/zoho-crm.png',
-                fulfilmentId: 'CRM_LICENSE_STD'
-            },
-            {
-                productId: 'ZOHO_BOOKS_PRO',
-                name: 'Zoho Books Pro',
-                description: 'Accounting software for growing businesses',
-                cost: 90000,
-                currency: 'NGN',
-                tenure: '12_MONTHS',
-                imageUrl: 'https://icontech.com/images/zoho-books.png',
-                fulfilmentId: 'BOOKS_LICENSE_PRO'
-            }
-        ]; */
+
     }
     /**
      * GET /products
