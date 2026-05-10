@@ -46,7 +46,12 @@ class T2MobileOrderJob {
 
             
             job.progress(25);
-            const zohoSalesOrderResponse = await this.createZohoSalesOrder({
+            let zohoSalesOrderResponse;
+            let salesOrderId;
+            let activationReference;
+            
+            if (!order.zohoSalesOrderId) {
+            zohoSalesOrderResponse = await this.createZohoSalesOrder({
                 productId,
                 customerName,
                 customerEmail,
@@ -54,9 +59,10 @@ class T2MobileOrderJob {
                 tenure,
                 orderId
             });
+        }
 
-            const salesOrderId = zohoSalesOrderResponse.code;
-            const activationReference = `${productId}_${orderId}`;
+            salesOrderId = zohoSalesOrderResponse?.salesorder?.salesorder_id ?? order.zohoSalesOrderId;
+            activationReference = order.activationReference ?? `ZOH${orderId}`;
 
             
             order.zohoSalesOrderId = salesOrderId;
@@ -66,13 +72,19 @@ class T2MobileOrderJob {
 
             
             job.progress(50);
-            const fulfillmentData = await this.provisionLicense({
+            
+            const fulfillmentInfo = await db.t2mobile_fulfillments.findOne({
+                where: { orderId }
+            })
+
+
+            const fulfillmentData = fulfillmentInfo ? JSON.parse(fulfillmentInfo.zohoResponse) : await this.provisionLicense({
                 salesOrderId,
                 activationReference,
                 productId,
                 customerId,
                 tenure
-            });
+            }) 
 
             
             await db.t2mobile_fulfillments.create({
@@ -87,6 +99,7 @@ class T2MobileOrderJob {
             
             order.status = 'FULFILLED';
             await order.save();
+        
 
             // Step 7: Send success webhook to T2Mobile
             job.progress(75);
@@ -255,8 +268,8 @@ class T2MobileOrderJob {
         try {
             // In a real scenario, this would interact with Zoho Subscriptions API
             // or a custom provisioning service
-
-            const tenureMonths = parseInt(provisionData.tenure.split('_')[0]);
+            console.log("provisionData.tenureeeee", provisionData.tenure)
+            const tenureMonths = parseInt(String(provisionData.tenure).split('_')[0]);
             const expiryDate = new Date();
             expiryDate.setMonth(expiryDate.getMonth() + tenureMonths);
 

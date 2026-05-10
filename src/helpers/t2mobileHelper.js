@@ -41,33 +41,69 @@ class T2MobileHelper {
      * @returns {object} - { isValid: boolean, error: string|null }
      */
     static validateFulfillmentPayload(payload) {
-        const required = ['orderId', 'productId', 'customerId', 'customerName', 'customerEmail', 'tenure'];
-        const missing = required.filter(field => !payload[field]);
+const {
+        orderId,
+        product,
+        customer
+    } = payload || {};
 
-        if (missing.length > 0) {
-            return {
-                isValid: false,
-                error: `Missing required fields: ${missing.join(', ')}`
-            };
-        }
+    const missing = [];
 
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(payload.customerEmail)) {
-            return {
-                isValid: false,
-                error: 'Invalid customer email format'
-            };
-        }
+    // top-level
+    if (!orderId) missing.push('orderId');
+
+    // product fields
+    if (!product?.externalProductId) {
+        missing.push('product.externalProductId');
+    }
+
+    if (!product?.tenureDays) {
+        missing.push('product.tenureDays');
+    }
+
+    // customer fields
+    if (!customer?.email) {
+        missing.push('customer.email');
+    }
+
+    if (!customer?.firstName) {
+        missing.push('customer.firstName');
+    }
+
+    if (!customer?.lastName) {
+        missing.push('customer.lastName');
+    }
+
+    if (!customer?.phone) {
+        missing.push('customer.phone');
+    }
+
+    // missing fields response
+    if (missing.length > 0) {
+        return {
+            isValid: false,
+            error: `Missing required fields: ${missing.join(', ')}`
+        };
+    }
+
+    // validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(customer.email)) {
+        return {
+            isValid: false,
+            error: 'Invalid customer email format'
+        };
+    }
 
         // Validate tenure format
-        const validTenures = ['1_MONTH', '3_MONTHS', '6_MONTHS', '12_MONTHS'];
-        if (!validTenures.includes(payload.tenure)) {
-            return {
-                isValid: false,
-                error: `Invalid tenure. Must be one of: ${validTenures.join(', ')}`
-            };
-        }
+        // const validTenures = ['1_MONTH', '3_MONTHS', '6_MONTHS', '12_MONTHS'];
+        // if (!validTenures.includes(payload.tenure)) {
+        //     return {
+        //         isValid: false,
+        //         error: `Invalid tenure. Must be one of: ${validTenures.join(', ')}`
+        //     };
+        // }
 
         return { isValid: true, error: null };
     }
@@ -222,9 +258,11 @@ class T2MobileHelper {
      * Get T2Mobile partner info
      * @returns {object}
      */
-    static getPartnerInfo() {
+    static getPartnerInfo(products) {
         return {
-            partnerId: process.env.T2MOBILE_PARTNER_ID || 'ICONTECH001',
+            statusCode: 'PL-100',
+            statusDescription: products.length > 0 ? 'Product List Success' : "Product List Failed",
+            // partnerId: process.env.T2MOBILE_PARTNER_ID || 'ICONTECH001',
             // partnerName: 'Icontech',
             // apiVersion: 'v1'
         };

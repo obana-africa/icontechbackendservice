@@ -23,29 +23,30 @@ class WebhookHelper {
         switch (eventType) {
             case 'ORDER_FULFILLED':
                 return {
-                    ...basePayload,
+                    // ...basePayload,
                     orderId: data.orderId,
                     activationReference: data.activationReference,
-                    salesOrderId: data.salesOrderId,
+                    // salesOrderId: data.salesOrderId,
                     status: 'SUCCESS',
-                    expiryDate: data.expiryDate
+                    // expiryDate: data.expiryDate
                 };
 
             case 'ORDER_FAILED':
                 return {
-                    ...basePayload,
+                    // ...basePayload,
                     orderId: data.orderId,
-                    status: 'FAILED',
-                    errorCode: data.errorCode,
-                    message: data.message
+                    status: 'FAIL',
+                    // errorCode: data.errorCode,
+                    // message: data.message
                 };
 
             case 'SUBSCRIPTION_RENEWED':
                 return {
-                    ...basePayload,
+                    // ...basePayload,
                     orderId: data.orderId,
                     activationReference: data.activationReference,
-                    newExpiryDate: data.newExpiryDate
+                    status: 'SUCCESS',
+                    // newExpiryDate: data.newExpiryDate
                 };
 
             case 'EXPIRY_REMINDER':
@@ -53,10 +54,10 @@ class WebhookHelper {
                     ...basePayload,
                     activationReference: data.activationReference,
                     customerEmail: data.customerEmail,
-                    amount: data.amount,
+                    cost: data.amount,
                     currency: data.currency || 'NGN',
                     expiryDate: data.expiryDate,
-                    daysUntilExpiry: data.daysUntilExpiry
+                    // daysUntilExpiry: data.daysUntilExpiry
                 };
 
             default:

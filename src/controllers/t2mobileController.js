@@ -22,18 +22,22 @@ class T2MobileController {
         req.body.return = 1;
         req.params =  {tenant: 'zoho', endpoint: 'get-products'}
         let response = await makeRequest(req, res)
+        // console.log("response.items", response.items)
         let products  = [];
         for (const item of response.items) {
             products.push({
-                parentId: item.cf_parent_id,
-                productId: item.item_id,
+                // parentId: item.cf_parent_id,
+                fulfilmentEngineId: item.item_id.slice(-5),
                 name: item.name,
-                description: item.description,
                 cost: item.rate,
                 currency: item.cf_currency,
-                tenure: item.cf_tenure,
+                tenureDays: item.cf_tenure,
+                productGroup: item.group_id,
                 imageUrl: item.cf_image_url,
-                fulfilmentId: `${item.item_id}_LICENSE`
+                learnMoreUrl: '',
+                externalProductId: item.item_id,
+                status: item.status.toUpperCase(),
+                // description: item.description,
             })
         }
         
@@ -68,13 +72,6 @@ class T2MobileController {
 
 
             const products = await T2MobileController.fetchProductsFromZoho(req, res);
-
-            
-            const response = {
-                ...T2MobileHelper.getPartnerInfo(),
-                products
-            };
-
             
             await T2MobileHelper.logApiCall({
                 endpoint: 'GET /products',
@@ -84,8 +81,9 @@ class T2MobileController {
             });
 
             return res.status(200).json({
-                success: true,
-                data: response
+                // success: true,
+                ...T2MobileHelper.getPartnerInfo(products),
+                data: products
             });
         } catch (error) {
             console.error('Error fetching products:', error);
@@ -159,21 +157,31 @@ class T2MobileController {
                 );
             }
 
+            // const {
+            //     orderId,
+            //     productId,
+            //     customerId,
+            //     customerName,
+            //     customerEmail,
+            //     customerPhone,
+            //     tenure,
+            //     orderDate
+            // } = req.body;
+            
             const {
                 orderId,
-                productId,
-                customerId,
-                customerName,
-                customerEmail,
-                customerPhone,
-                tenure,
-                orderDate
+                product,
+                customer
             } = req.body;
+
+            const {externalProductId: productId, tenureDays: tenure, status, } = product
+            const {email: customerEmail, firstName, lastName, is9mobile, phone: customerPhone} = customer
+            let customerName = `${firstName} ${lastName}`
 
             // Step 5: Create order record in database
             const order = await db.t2mobile_orders.create({
                 orderId,
-                customerId,
+                customerId: firstName,
                 customerName,
                 customerEmail,
                 customerPhone: customerPhone || null,
@@ -181,9 +189,10 @@ class T2MobileController {
                 tenure,
                 status: 'PENDING',
                 idempotencyKey,
-                orderDate: orderDate ? new Date(orderDate) : null,
+                orderDate: new Date().toISOString().split('T')[0],
                 metadata: {
-                    api_version: t2mobileConfig.features.enableIdempotency ? 'v1' : 'legacy'
+                    api_version: t2mobileConfig.features.enableIdempotency ? 'v1' : 'legacy',
+                    is9mobile
                 }
             });
 
@@ -194,7 +203,7 @@ class T2MobileController {
                     {
                         orderId,
                         productId,
-                        customerId,
+                        customerId: firstName,
                         customerName,
                         customerEmail,
                         customerPhone,
@@ -213,7 +222,16 @@ class T2MobileController {
                 console.log(`Order ${orderId} queued for processing - Job ID: ${jobResult.jobId}`);
             } else {
                 try {
-                    await T2MobileOrderJob.process({ data: req.body });
+                    await T2MobileOrderJob.process({ data: {
+                        orderId,
+                        productId,
+                        customerId,
+                        customerName,
+                        customerEmail,
+                        customerPhone,
+                        tenure,
+                        idempotencyKey
+                    } });
                 } catch (error) {
                     console.error('Synchronous order processing failed:', error);
                     order.status = 'FAILED';
@@ -231,11 +249,11 @@ class T2MobileController {
             });
 
             return res.status(202).json({
-                success: true,
+                // success: true,
                 orderId,
                 status: 'PROCESSING',
-                activationReference: `${productId}_${orderId}`,
-                message: 'Order received and processing'
+                activationReference: `ZOH${orderId}`,
+                // message: 'Order received and processing'
             });
         } catch (error) {
             console.error('Error creating fulfillment:', error);

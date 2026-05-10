@@ -26,7 +26,7 @@ const t2mobileRateLimiter = rateLimit({
 });
 
 /**
- * @swagger
+ * @swagger_
  * /t2mobile/products:
  *   get:
  *     summary: Get product catalogue
@@ -34,6 +34,12 @@ const t2mobileRateLimiter = rateLimit({
  *     tags:
  *       - T2Mobile
  *     parameters:
+ *       - in: path
+ *         name: partnerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the partner.
  *       - in: header
  *         name: Authorization
  *         required: true
@@ -64,9 +70,8 @@ const t2mobileRateLimiter = rateLimit({
  *         description: Too many requests
  */
 router.get('/:partnerId/products', t2mobileRateLimiter, T2MobileController.getProducts);
-
 /**
- * @swagger
+ * @swagger_
  * /t2mobile/fulfilment:
  *   post:
  *     summary: Create order/fulfillment
@@ -74,6 +79,18 @@ router.get('/:partnerId/products', t2mobileRateLimiter, T2MobileController.getPr
  *     tags:
  *       - T2Mobile
  *     parameters:
+ *       - in: path
+ *         name: partnerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the partner.
+ *       - in: path
+ *         name: fulfilmentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID for this fulfillment request from the partner.
  *       - in: header
  *         name: Authorization
  *         required: true
@@ -150,7 +167,7 @@ router.get('/:partnerId/products', t2mobileRateLimiter, T2MobileController.getPr
 router.post('/:partnerId/fulfilment/:fulfilmentId', t2mobileRateLimiter, T2MobileController.createFulfillment);
 
 /**
- * @swagger
+ * @swagger_
  * /t2mobile/orders/{orderId}:
  *   get:
  *     summary: Get order status
