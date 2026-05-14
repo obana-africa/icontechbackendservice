@@ -176,7 +176,7 @@ class T2MobileController {
                 customer
             } = req.body;
 
-            const {externalProductId: productId, tenureDays: tenure, status, } = product
+            // const {externalProductId: productId, tenureDays: tenure, status, } = product
             const {externalProductId: productId, tenureDays: tenure, status, cost, currency} = product
             let customerName = `${firstName} ${lastName}`
 
