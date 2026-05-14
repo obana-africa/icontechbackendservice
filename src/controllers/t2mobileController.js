@@ -66,7 +66,7 @@ class T2MobileController {
             const validation = T2MobileHelper.validateProductsQuery(req.query);
             if (!validation.isValid) {
                 return res.status(400).json(
-                    T2MobileHelper.formatErrorResponse(validation.error, 'INVALID_QUERY', 400)
+                    T2MobileHelper.formatErrorResponse(validation.error, 'FF-300', 400)
                 );
             }
 
@@ -81,8 +81,8 @@ class T2MobileController {
             });
 
             return res.status(200).json({
-                // success: true,
-                ...T2MobileHelper.getPartnerInfo(products),
+                statusCode: 'PL-100',
+                statusDescription: 'Product List Success',
                 data: products
             });
         } catch (error) {
@@ -91,7 +91,7 @@ class T2MobileController {
             return res.status(500).json(
                 T2MobileHelper.formatErrorResponse(
                     'Internal server error',
-                    'INTERNAL_ERROR',
+                    'PL-500',
                     500
                 )
             );
@@ -122,7 +122,7 @@ class T2MobileController {
                 return res.status(400).json(
                     T2MobileHelper.formatErrorResponse(
                         'Missing Idempotency-Key header',
-                        'MISSING_IDEMPOTENCY_KEY',
+                        'FF-300',
                         400
                     )
                 );
@@ -135,12 +135,14 @@ class T2MobileController {
                     console.log(`Duplicate order detected: ${existingOrder.orderId}`);
                     
                     return res.status(200).json({
-                        success: true,
-                        isDuplicate: true,
-                        orderId: existingOrder.orderId,
-                        status: existingOrder.status,
-                        activationReference: existingOrder.activationReference,
-                        salesOrderId: existingOrder.zohoSalesOrderId
+                        statusCode: 'FF-100',
+                        statusDescription: 'Subscription Already Active for the order/ Duplicate order (Idempotency validation)',
+                        data: {
+                            orderId: existingOrder.orderId,
+                            status: existingOrder.status,
+                            activationReference: existingOrder.activationReference,
+                            salesOrderId: existingOrder.zohoSalesOrderId
+                        }
                     });
                 }
             }
@@ -151,7 +153,7 @@ class T2MobileController {
                 return res.status(400).json(
                     T2MobileHelper.formatErrorResponse(
                         payloadValidation.error,
-                        'INVALID_PAYLOAD',
+                        'FF-300',
                         400
                     )
                 );
@@ -175,7 +177,7 @@ class T2MobileController {
             } = req.body;
 
             const {externalProductId: productId, tenureDays: tenure, status, } = product
-            const {email: customerEmail, firstName, lastName, is9mobile, phone: customerPhone} = customer
+            const {externalProductId: productId, tenureDays: tenure, status, cost, currency} = product
             let customerName = `${firstName} ${lastName}`
 
             // Step 5: Create order record in database
@@ -186,6 +188,8 @@ class T2MobileController {
                 customerEmail,
                 customerPhone: customerPhone || null,
                 productId,
+                cost,
+                currency,
                 tenure,
                 status: 'PENDING',
                 idempotencyKey,
@@ -249,11 +253,13 @@ class T2MobileController {
             });
 
             return res.status(202).json({
-                // success: true,
-                orderId,
-                status: 'PROCESSING',
-                activationReference: `ZOH${orderId}`,
-                // message: 'Order received and processing'
+                statusCode: 'FF-200',
+                statusDescription: 'Fulfilment Pending',
+                data: {
+                    orderId,
+                    status: 'PROCESSING',
+                    activationReference: `ZOH${orderId}`
+                }
             });
         } catch (error) {
             console.error('Error creating fulfillment:', error);
@@ -261,7 +267,7 @@ class T2MobileController {
             return res.status(500).json(
                 T2MobileHelper.formatErrorResponse(
                     error.message || 'Internal server error',
-                    'INTERNAL_ERROR',
+                    'FF-500',
                     500
                 )
             );
@@ -274,18 +280,6 @@ class T2MobileController {
      */
     static async getOrderStatus(req, res) {
         try {
-            // Validate API key
-            const bearerToken = T2MobileHelper.extractBearerToken(req.headers.authorization);
-            if (!bearerToken || !T2MobileHelper.validateApiKey(bearerToken)) {
-                return res.status(401).json(
-                    T2MobileHelper.formatErrorResponse(
-                        'Unauthorized: Invalid API key',
-                        'INVALID_API_KEY',
-                        401
-                    )
-                );
-            }
-
             const { orderId } = req.params;
 
             const order = await db.t2mobile_orders.findOne({
@@ -296,14 +290,15 @@ class T2MobileController {
                 return res.status(404).json(
                     T2MobileHelper.formatErrorResponse(
                         'Order not found',
-                        'ORDER_NOT_FOUND',
+                        'FF-400',
                         404
                     )
                 );
             }
 
             return res.status(200).json({
-                success: true,
+                statusCode: 'FF-100',
+                statusDescription: 'Fulfilment Successful',
                 data: {
                     orderId: order.orderId,
                     status: order.status,
@@ -319,7 +314,7 @@ class T2MobileController {
             return res.status(500).json(
                 T2MobileHelper.formatErrorResponse(
                     'Internal server error',
-                    'INTERNAL_ERROR',
+                    'FF-500',
                     500
                 )
             );

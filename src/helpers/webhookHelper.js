@@ -5,6 +5,7 @@
 
 const axios = require('axios');
 const T2MobileHelper = require('./t2mobileHelper');
+const t2mobileConfig = require('../config/t2mobile');
 const db = require('../models');
 
 class WebhookHelper {
@@ -73,9 +74,22 @@ class WebhookHelper {
      * @returns {Promise<object>}
      */
     static async sendWebhook(eventType, data, saveLog = true) {
-        const webhookUrl = process.env.T2MOBILE_WEBHOOK_URL;
+        let webhookUrl;
+
+        switch (eventType) {
+            case 'EXPIRY_REMINDER':
+                webhookUrl = t2mobileConfig.renewalWebhookUrl;
+                break;
+            case 'ORDER_FULFILLED':
+            case 'ORDER_FAILED':
+                webhookUrl = t2mobileConfig.orderWebhookUrl;
+                break;
+            default:
+                webhookUrl = t2mobileConfig.webhookUrl;
+        }
+
         if (!webhookUrl) {
-            console.error('T2MOBILE_WEBHOOK_URL not configured');
+            console.error('Webhook URL not configured for event type:', eventType);
             throw new Error('Webhook URL not configured');
         }
 

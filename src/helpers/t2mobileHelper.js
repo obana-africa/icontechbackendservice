@@ -181,31 +181,30 @@ const {
     /**
      * Format success response
      * @param {object} data - Response data
-     * @param {number} statusCode - HTTP status code
+     * @param {string} statusCode - Standardized status code
+     * @param {string} statusDescription - Status description
      * @returns {object}
      */
-    static formatSuccessResponse(data, statusCode = 200) {
+    static formatSuccessResponse(data, statusCode = 'FF-100', statusDescription = 'Success') {
         return {
-            success: true,
             statusCode,
+            statusDescription,
             data,
             timestamp: new Date().toISOString()
         };
     }
 
     /**
-     * Format error response
+     * Format error response with standardized codes
      * @param {string} message - Error message
-     * @param {string} errorCode - Error code
+     * @param {string} errorCode - Standardized error code from TDD
      * @param {number} statusCode - HTTP status code
      * @returns {object}
      */
-    static formatErrorResponse(message, errorCode = 'INTERNAL_ERROR', statusCode = 500) {
+    static formatErrorResponse(message, errorCode, statusCode = 500) {
         return {
-            success: false,
-            statusCode,
-            errorCode,
-            message,
+            statusCode: errorCode,
+            statusDescription: message,
             timestamp: new Date().toISOString()
         };
     }
@@ -255,17 +254,117 @@ const {
     }
 
     /**
-     * Get T2Mobile partner info
-     * @returns {object}
+     * Verify HMAC signature for incoming requests
+     * @param {string} method - HTTP method
+     * @param {string} path - Request path (with query)
+     * @param {string} timestamp - X-Api-Timestamp
+     * @param {string} body - Raw request body
+     * @param {string} signature - X-Api-Signature
+     * @returns {boolean}
      */
-    static getPartnerInfo(products) {
-        return {
-            statusCode: 'PL-100',
-            statusDescription: products.length > 0 ? 'Product List Success' : "Product List Failed",
-            // partnerId: process.env.T2MOBILE_PARTNER_ID || 'ICONTECH001',
-            // partnerName: 'Icontech',
-            // apiVersion: 'v1'
-        };
+    static verifyHmacSignature(method, path, timestamp, body, signature) {
+        const apiSecret = process.env.T2MOBILE_API_SECRET;
+        if (!apiSecret) {
+            console.error('T2MOBILE_API_SECRET not configured');
+            return false;
+        }
+
+        // Create string to sign: METHOD\nPATH+QUERY\nTIMESTAMP\nSHA256(body)
+        const bodyHash = crypto.createHash('sha256').update(body || '', 'utf8').digest('hex');
+        const stringToSign = `${method.toUpperCase()}\n${path}\n${timestamp}\n${bodyHash}`;
+
+        // Generate expected signature
+        const expectedSignature = crypto
+            .createHmac('sha256', apiSecret)
+            .update(stringToSign, 'utf8')
+            .digest('base64');
+
+        // Use timing-safe comparison
+        try {
+            return crypto.timingSafeEqual(
+                Buffer.from(signature, 'base64'),
+                Buffer.from(expectedSignature, 'base64')
+            );
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Middleware to authenticate T2Mobile requests using HMAC
+     * @param {object} req - Express request
+     * @param {object} res - Express response
+     * @param {function} next - Next middleware
+     */
+    static authenticateT2MobileRequest(req, res, next) {
+        try {
+            const apiKey = req.headers['x-api-key'];
+            const timestamp = req.headers['x-api-timestamp'];
+            const signature = req.headers['x-api-signature'];
+
+            // Check required headers
+            if (!apiKey || !timestamp || !signature) {
+                return res.status(401).json(
+                    this.formatErrorResponse(
+                        'Missing required authentication headers',
+                        'AA-304',
+                        401
+                    )
+                );
+            }
+
+            // Validate API key
+            const validKey = process.env.T2MOBILE_API_KEY;
+            if (apiKey !== validKey) {
+                return res.status(401).json(
+                    this.formatErrorResponse(
+                        'Invalid API key',
+                        'AA-305',
+                        401
+                    )
+                );
+            }
+
+            // Check timestamp tolerance (±300 seconds)
+            const now = Math.floor(Date.now() / 1000);
+            const requestTime = parseInt(timestamp);
+            if (Math.abs(now - requestTime) > 300) {
+                return res.status(401).json(
+                    this.formatErrorResponse(
+                        'Request timestamp outside tolerance window',
+                        'AA-304',
+                        401
+                    )
+                );
+            }
+
+            // Get raw body for signature verification
+            const rawBody = req.rawBody || JSON.stringify(req.body);
+            const pathWithQuery = req.originalUrl;
+
+            // Verify HMAC signature
+            if (!this.verifyHmacSignature(req.method, pathWithQuery, timestamp, rawBody, signature)) {
+                return res.status(401).json(
+                    this.formatErrorResponse(
+                        'Invalid request signature',
+                        'AA-305',
+                        401
+                    )
+                );
+            }
+
+            // Authentication successful
+            next();
+        } catch (error) {
+            console.error('HMAC authentication error:', error);
+            return res.status(500).json(
+                this.formatErrorResponse(
+                    'Authentication error',
+                    'FF-500',
+                    500
+                )
+            );
+        }
     }
 }
 

@@ -10,7 +10,9 @@ module.exports = {
 
     // Webhook Configuration
     webhookSecret: process.env.T2MOBILE_WEBHOOK_SECRET,
-    webhookUrl: process.env.T2MOBILE_WEBHOOK_URL,
+    webhookUrl: process.env.T2MOBILE_WEBHOOK_URL || 'https://thanox-api-management-test.azure-api.net/subscriptionCenterExt',
+    renewalWebhookUrl: process.env.T2MOBILE_RENEWAL_WEBHOOK_URL || 'https://thanox-api-management-test.azure-api.net/subscriptionCenterExt/api/external/notification/renewal',
+    orderWebhookUrl: process.env.T2MOBILE_ORDER_WEBHOOK_URL || 'https://thanox-api-management-test.azure-api.net/subscriptionCenterExt/api/external/notification/order',
 
     // Zoho Integration
     zoho: {

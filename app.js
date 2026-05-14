@@ -13,7 +13,11 @@ const t2mobileRoute = require('./src/routes/t2mobile');
 const PORT = process.env.PORT;
 const app = express();
 
-app.use(express.json());
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 
 // Session and Passport setup
 const session = require('express-session');

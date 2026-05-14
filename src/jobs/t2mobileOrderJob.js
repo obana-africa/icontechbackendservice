@@ -99,7 +99,37 @@ class T2MobileOrderJob {
             
             order.status = 'FULFILLED';
             await order.save();
-        
+
+            // Step 6: Calculate revenue split
+            job.progress(60);
+            const partnerId = process.env.T2MOBILE_PARTNER_ID || 'ICONTECH001';
+            const partner = await db.partners.findOne({
+                where: { partnerId, status: 'ACTIVE' }
+            });
+
+            if (partner && order.cost) {
+                const revenueShare = partner.revenueShare || 0.30;
+                const grossAmount = parseFloat(order.cost);
+                const partnerAmount = grossAmount * revenueShare;
+                const icontechAmount = grossAmount - partnerAmount;
+
+                await db.revenue_settlements.create({
+                    orderId,
+                    partnerId,
+                    grossAmount,
+                    currency: order.currency || 'NGN',
+                    revenueShare,
+                    partnerAmount,
+                    icontechAmount,
+                    settlementStatus: 'PENDING',
+                    metadata: {
+                        productId: order.productId,
+                        tenure: order.tenure
+                    }
+                });
+
+                console.log(`[T2Mobile Order Job] Revenue split calculated for order ${orderId}: Partner ${partnerAmount}, Icontech ${icontechAmount}`);
+            }
 
             // Step 7: Send success webhook to T2Mobile
             job.progress(75);

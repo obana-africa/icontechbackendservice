@@ -35,6 +35,15 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             comment: "Zoho Product ID (e.g., ZOHO_CRM_STD)"
         },
+        cost: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true,
+            comment: "Product cost"
+        },
+        currency: {
+            type: DataTypes.STRING(3),
+            defaultValue: 'NGN'
+        },
         tenure: {
             type: DataTypes.STRING(50),
             allowNull: false,

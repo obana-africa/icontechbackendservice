@@ -6,9 +6,15 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const T2MobileController = require('../controllers/t2mobileController');
+const T2MobileHelper = require('../helpers/t2mobileHelper');
 const t2mobileConfig = require('../config/t2mobile');
 
 const router = express.Router();
+
+/**
+ * T2Mobile HMAC Authentication Middleware
+ */
+router.use(T2MobileHelper.authenticateT2MobileRequest);
 
 /**
  * Rate limiter middleware for T2Mobile endpoints

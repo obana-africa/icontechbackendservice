@@ -37,12 +37,12 @@ class ExpiryReminderJob {
 
                     const daysUntilExpiry = this.calculateDaysUntilExpiry(fulfillment.expiryDate);
 
-                    // Send reminder webhook
+                    // Send reminder webhook using T2Mobile renewal endpoint
                     await WebhookHelper.sendWebhook('EXPIRY_REMINDER', {
                         activationReference: fulfillment.activationReference,
                         customerEmail: order.customerEmail,
-                        amount: 150000, // TODO: Get actual price from product
-                        currency: 'NGN',
+                        cost: order.cost || 150000,
+                        currency: order.currency || 'NGN',
                         expiryDate: fulfillment.expiryDate,
                         daysUntilExpiry
                     });

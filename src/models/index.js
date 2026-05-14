@@ -46,12 +46,12 @@ db.tenants = require('./tenantModel.js')(sequelize, DataTypes)
 db.endpoints = require('./endpointModel.js')(sequelize, DataTypes)
 db.users = require('./userModel.js')(sequelize, DataTypes)
 db.requests = require('./requestModel.js')(sequelize, DataTypes)
-
-
+db.partners = require('./partnerModel.js')(sequelize, DataTypes)
 
 db.t2mobile_orders = require('./t2mobileOrderModel.js')(sequelize, DataTypes)
 db.t2mobile_fulfillments = require('./t2mobileFulfillmentModel.js')(sequelize, DataTypes)
 db.t2mobile_webhook_logs = require('./t2mobileWebhookLogModel.js')(sequelize, DataTypes)
+db.revenue_settlements = require('./revenueSettlementModel.js')(sequelize, DataTypes)
 
 db.cache = new Cache(redis)
 
