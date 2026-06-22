@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Website</title>
+
+  <style>
+
+    body{
+      overflow: hidden;
+      background:pink;
+      margin:0;
+      font-family:Arial, sans-serif;
+      background-image:url("background.jpg");
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      color:white;
+    }
+
+
+
+    /* NAVBAR */
+    nav{
+      background:rgba(0,0,0,0.7);
+      padding:15px;
+      text-align:center;
+    }
+
+    nav a{
+      color:white;
+      text-decoration:none;
+      margin:15px;
+      font-size:18px;
+      transition:0.3s;
+    }
+
+    nav a:hover{
+      color:yellow;
+      letter-spacing:2px;
+    }
+
+    /* HERO SECTION */
+    .hero{
+      height:70vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+    }
+
+    .hero h1{
+      font-size:60px;
+    }
+
+    .hero p{
+      font-size:22px;
+    }
+
+    /* LOGIN BOX */
+    .login-container{
+      display:flex;
+      justify-content:center;
+      margin-bottom:50px;
+    }
+
+    .login-box{
+      background:whitesmoke;
+      color:black;
+      padding:30px;
+      border-radius:10px;
+      width:300px;
+      box-shadow:0 0 10px rgba(0,0,0,0.4);
+    }
+
+    .login-box input{
+      width:100%;
+      padding:10px;
+      margin:10px 0;
+    }
+
+    .login-box button{
+      width:100%;
+      padding:10px;
+      border:none;
+      background:crimson;
+      color:black;
+      cursor:pointer;
+      border-radius:5px;
+    }
+
+    .login-box button:hover{
+      background:darkred;
+    }
+
+    footer{
+      text-align:center;
+      padding:20px;
+      background:rgba(0,0,0,0.7);
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">About</a>
+    <a href="#">Shop</a>
+    <a href="#">Contact</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Welcome to My Website</h1>
+    <p>Create amazing things with HTML and CSS</p>
+  </section>
+
+  <!-- LOGIN -->
+  <div class="login-container">
+    <div class="login-box">
+
+      <h2>Login</h2>
+
+      <input type="text" id="username" placeholder="Username">
+
+      <input type="password" id="password" placeholder="Password">
+
+      <button onclick="login()">Login</button>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>My Simple Webpage</p>
+  </footer>
+
+  <script>
+    function login(){
+
+      let username =
+      document.getElementById("username").value;
+
+      let password =
+      document.getElementById("password").value;
+
+      if(username === "admin" && password === "1234"){
+
+        alert("Login Successful");
+
+        window.location.href = "dashboard.html";
+
+      } else {
+
+        alert("Wrong username or password");
+
+      }
+    }
+  </script>
+
+</body>
+</html>

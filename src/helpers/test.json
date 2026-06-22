@@ -1,0 +1,322 @@
+https://www.zoho.com/billing/api/v1/subscription/#create-a-subscription
+
+my conversatino with an ai concerning this proj to clarify licence provisioning:
+------------------------------------------------------------------------------------------------------------------------
+After checking Zoho’s docs and partner APIs, the answer is:
+
+✅ Zoho absolutely supports programmatic subscription/customer provisioning through APIs.
+
+And based on your T2Mobile TDD, the most likely architecture is:
+
+Icontech provisions customers using Zoho Billing (formerly Zoho Subscriptions).
+
+This fits your flows almost perfectly:
+
+subscriptions
+renewals
+expiry reminders
+plans
+activation references
+recurring lifecycle
+🧠 The BIG Picture
+
+You are essentially building:
+
+T2Mobile Payment
+        ↓
+Icontech Fulfilment API
+        ↓
+Zoho Billing / Subscriptions API
+        ↓
+Customer Subscription Activated
+🔥 Most Important Discovery
+
+Zoho Billing APIs allow you to:
+
+✅ Create customers
+✅ Create subscriptions
+✅ Assign plans
+✅ Extend subscriptions
+✅ Pause/cancel/reactivate subscriptions
+✅ Retrieve expiry dates
+✅ Manage renewals
+
+This is likely the core provisioning engine you need.
+
+🧩 The REAL Provisioning Flow
+
+Let me walk you through what likely happens internally.
+
+STEP 1 — Product Exists in Zoho Billing
+
+Inside Zoho Billing:
+you create:
+
+Product
+   └── Plan
+
+Example:
+
+Product:
+Zoho CRM
+
+Plan:
+STANDARD_YEARLY
+
+This maps to:
+
+{
+  "externalProductId": "ZOHO_CRM_STD"
+}
+
+in your own API.
+
+STEP 2 — T2Mobile Customer Pays
+
+T2Mobile:
+
+processes payment
+generates order
+calls your fulfilment endpoint
+{
+  "orderId": "T2M123",
+  "customer": {
+    "email": "john@example.com"
+  }
+}
+STEP 3 — Your Fulfilment Worker Starts
+
+Your backend queue receives job:
+
+PROVISION_SUBSCRIPTION
+STEP 4 — Create Customer in Zoho (If Needed)
+
+Zoho Billing supports customer creation directly.
+
+You call:
+
+POST /customers
+
+with:
+
+{
+  "display_name": "John Doe",
+  "email": "john@example.com"
+}
+
+Zoho responds:
+
+{
+  "customer_id": "90300000123"
+}
+🧠 Important Concept
+
+Zoho separates:
+
+Entity	Meaning
+Customer	Human/company
+Subscription	Active paid plan
+Plan	Pricing package
+STEP 5 — Create Subscription (THE REAL PROVISIONING)
+
+THIS is the actual provisioning step.
+
+You call:
+
+POST /subscriptions
+
+Zoho supports this officially.
+
+Payload:
+
+{
+  "customer_id": "90300000123",
+  "plan": {
+    "plan_code": "CRM_STANDARD_YEARLY"
+  },
+  "auto_collect": false,
+  "reference_id": "T2M123"
+}
+🧠 Why auto_collect = false?
+
+Because:
+
+T2Mobile already handled payment
+Zoho should NOT charge customer directly
+
+You are operating in:
+
+offline subscription mode
+
+Zoho docs explicitly support this.
+
+STEP 6 — Zoho Creates Subscription
+
+Zoho responds:
+
+{
+  "subscription_id": "SUB_903939",
+  "status": "live",
+  "current_term_ends_at": "2027-02-19"
+}
+
+🔥 THIS Is Your activationReference
+
+Most likely:
+
+activationReference = subscription_id
+
+Example:
+
+SUB_903939
+STEP 7 — Store Locally
+
+Your DB:
+
+Field	Value
+orderId	T2M123
+customerEmail	john@example.com
+subscriptionId	SUB_903939
+status	ACTIVE
+expiryDate	2027-02-19
+STEP 8 — Notify T2Mobile
+
+Webhook:
+
+{
+  "statusCode": "FF-100",
+  "activationReference": "SUB_903939",
+  "expiryDate": "2027-02-19"
+}
+🔄 How Renewals Work
+
+This part is elegant.
+
+EXPIRY REMINDER
+
+Before expiry:
+
+Your scheduled worker checks:
+
+GET /subscriptions
+
+Finds subscriptions expiring soon.
+
+Then:
+
+send webhook to T2Mobile
+T2Mobile collects payment
+AFTER PAYMENT
+
+T2Mobile calls fulfilment again.
+
+But this time:
+you do NOT create new subscription.
+
+Instead:
+you extend existing one.
+
+Zoho supports:
+
+POST /subscriptions/{id}/extend
+
+🔥 THAT Is Probably Renewal Provisioning
+
+Meaning:
+
+existing subscription
+      ↓
+extend billing cycles
+      ↓
+new expiry date
+🧠 What fulfilmentEngineId Probably Means
+
+Very important realization.
+
+This likely maps internally to:
+
+Zoho plan_code
+
+Example:
+
+fulfilmentEngineId	Zoho Plan
+1461	CRM_STANDARD_YEARLY
+🧱 Your Internal Architecture
+
+This is probably what you should build.
+
+Product Table
+internal_product_id	zoho_plan_code
+ZOHO_CRM_STD	CRM_STANDARD_YEARLY
+Fulfilment Service
+async provisionSubscription(order) {
+   const customer = await zoho.findOrCreateCustomer()
+   const subscription = await zoho.createSubscription()
+
+   return subscription
+}
+Renewal Service
+async renewSubscription(subscriptionId) {
+   return zoho.extendSubscription(subscriptionId)
+}
+🚨 VERY Important Discovery
+
+Zoho has TWO provisioning models mentioned in docs:
+
+1. Reseller/Partner-managed mode
+
+Partner provisions on behalf of customers.
+
+2. Subscription API mode
+
+Customer self-manages.
+
+Your T2Mobile architecture clearly matches:
+
+Partner/Reseller Purchase Mode
+
+because:
+
+T2Mobile owns payment
+Icontech provisions on behalf of customer
+customer does not directly buy from Zoho
+🧠 Final Mental Model
+
+Here’s the clearest way to think about the entire system:
+
+T2Mobile
+    |
+    |  payment successful
+    ↓
+Icontech
+    |
+    |  create/find customer
+    |  create subscription
+    |  assign plan
+    ↓
+Zoho Billing
+    |
+    |  returns subscription_id
+    ↓
+Icontech
+    |
+    |  webhook
+    ↓
+T2Mobile
+📚 The MOST Important Docs You Should Read
+Zoho Billing Subscriptions API
+
+Zoho Billing Subscriptions API Docs
+
+Zoho Billing Customers API
+
+Zoho Billing Customers API Docs
+
+Zoho Partner/Reseller Subscription Management
+
+Zoho Partner Subscription Management Docs
+
+Zoho Partner API
+
+Zoho Partner API Docs
+

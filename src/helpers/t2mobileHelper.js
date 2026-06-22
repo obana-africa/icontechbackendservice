@@ -358,7 +358,7 @@ const {
         } catch (error) {
             console.error('HMAC authentication error:', error);
             return res.status(500).json(
-                this.formatErrorResponse(
+                T2MobileHelper.formatErrorResponse(
                     'Authentication error',
                     'FF-500',
                     500
